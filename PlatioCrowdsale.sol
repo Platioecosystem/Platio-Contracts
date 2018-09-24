@@ -15,10 +15,10 @@ contract PlatioCrowdsale is Contactable {
 
   PlatioToken public token;
 
-  uint public preSaleStartTime = 1539000000;
-  uint public preSaleEndTime = 1540123200;
-  uint public saleStartTime = 1540209600;
-  uint public saleEndTime = 1541332800;
+  uint public preSaleStartTime = 1542024000;
+  uint public preSaleEndTime = 1543147200;
+  uint public saleStartTime = 1543233600;
+  uint public saleEndTime = 1544356800;
   uint public startTime = preSaleStartTime;
   uint public endTime = saleEndTime;
   uint public cap = 184092 finney;
@@ -33,6 +33,13 @@ contract PlatioCrowdsale is Contactable {
 
   mapping (address => uint) public paidAmountOf;
 
+ /**
+  * @dev Event for token purchase logging
+  * @param purchaser who paid for the tokens
+  * @param beneficiary who got the tokens
+  * @param value weis paid for purchase
+  * @param amount amount of tokens purchased
+  */
   event TokenPurchase(
     address indexed purchaser,
     address indexed beneficiary,
@@ -42,6 +49,9 @@ contract PlatioCrowdsale is Contactable {
   event Refund(address who, uint value);
   event Finalized();
 
+  /**
+   * @dev Constructor that sets initial contract parameters
+   */
   constructor(PlatioToken _token) public {
     require(address(_token) != address(0));
     token = _token;
@@ -51,34 +61,65 @@ contract PlatioCrowdsale is Contactable {
     bountyAmount = token.totalSupply().div(100).mul(2);
   }
 
+  /**
+   *@dev fallback function
+   */
   function() public payable {
     buyTokens(msg.sender);
   }
 
+  /**
+   * @dev Checks whether the ICO has started
+   * @return bool true if the crowdsale began
+   */
   function hasStarted() public view returns (bool) {
     return block.timestamp >= startTime;
   }
   
+  /**
+   * @dev Checks whether the ICO has ended
+   * @return bool `true` if the crowdsale is over
+   */
   function hasEnded() public view returns (bool) {
     return block.timestamp > endTime;
   }
 
+  /**
+   * @dev Checks whether the cap has reached
+   * @return bool `true` if the cap has reached
+   */
   function capReached() public view returns (bool) {
     return weiRaised >= cap;
   }
-
+  
+  /**
+   * @dev Checks whether the goal has reached
+   * @return bool `true` if the goal has reached
+   */
   function goalReached() public view returns (bool) {
     return weiRaised >= goal;
   }
-
+ 
+   /**
+   * @dev Gets the current tokens amount can be purchased for the specified
+   * @dev wei amount
+   * @param _weiAmount uint wei amount
+   * @return uint tokens amount
+   */
   function getTokenAmount(uint _weiAmount) public view returns (uint) {
     return _weiAmount.mul(rate);
   }
 
+  /**
+   * @dev Gets the current tokens amount can be purchased for the specified
+   * @dev wei amount (including bonuses)
+   * @param _weiAmount uint wei amount
+   * @return uint tokens amount
+   */
   function getTokenAmountWithBonus(uint _weiAmount)
     public view returns (uint)
   {
-    if (hasStarted() && block.timestamp < 1539604800) {
+    if (hasStarted() && block.timestamp < 1542628800) {
       return(
         getTokenAmount(_weiAmount).
         add(
@@ -87,7 +128,7 @@ contract PlatioCrowdsale is Contactable {
           mul(15)
         )
       );
-    } else if (block.timestamp >= 1539604800 && block.timestamp < 1540123200) {
+    } else if (block.timestamp >= 1542628800 && block.timestamp < 1543147200) {
       return(
         getTokenAmount(_weiAmount).
         add(
@@ -96,7 +137,7 @@ contract PlatioCrowdsale is Contactable {
           mul(10)
         )
       );
-    } else if (block.timestamp >= 1540123200 && block.timestamp < 1540382400) {
+    } else if (block.timestamp >= 1543147200 && block.timestamp < 1543492800) {
       return(
         getTokenAmount(_weiAmount).
         add(
@@ -105,7 +146,7 @@ contract PlatioCrowdsale is Contactable {
           mul(8)
         )
       );
-    } else if (block.timestamp >= 1540382400 && block.timestamp < 1540728000) {
+    } else if (block.timestamp >= 1543492800 && block.timestamp < 1543838400) {
       return(
         getTokenAmount(_weiAmount).
         add(
@@ -118,7 +159,11 @@ contract PlatioCrowdsale is Contactable {
       return getTokenAmount(_weiAmount);
     }
   }
-
+  
+  /**
+   * @dev Token purchase 
+   * @param _beneficiary Address performing the token purchase
+   */
   function buyTokens(address _beneficiary) public payable {
     require(_beneficiary != address(0));
     require(msg.value > 0);
@@ -141,7 +186,10 @@ contract PlatioCrowdsale is Contactable {
       getTokenAmountWithBonus(msg.value)
     );
   }
-
+  
+  /**
+   * @dev Get tokens back if goal has not reached
+   */
   function refund() public {
     require(!goalReached() && isFinalized);
     msg.sender.transfer(paidAmountOf[msg.sender]);
@@ -155,6 +203,11 @@ contract PlatioCrowdsale is Contactable {
     owner.transfer(address(this).balance);
   }
 
+  /**
+   * @dev Function to finalize the sale
+   * @param _teamFund address of the team fund
+   * @param _advisorsFund address of the advisors fund
+   */
   function finalize(
     address _teamFund, 
     address _advisorsFund
